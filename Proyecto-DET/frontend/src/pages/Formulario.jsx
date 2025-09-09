@@ -1,276 +1,277 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { crearRegistro, obtenerRegisto, actualizarRegisto } from "../api/consultas";
+import { crearRegistro, obtenerRegistros, actualizarRegisto} from "../api/consultas";
+import '../Principal.css';
 
 const initialState = {
-  Nombre: "",
-  Apellido: "",
-  Direccion: "",
-  Dni: "",
-  Teléfono: "",
-  "Fecha de nacimiento": "",
-  Email: "",
+  Numero_de_serie: "",
+  Modelo_exacto: "",
+  Generacion: "",
+  Observaciones: "",
+  Diagnostico: "",
+  Estado: "",
+  Fecha_diagnostico: "",
 };
 
 export default function Formulario() {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const id = searchParams.get("id");
-  const [form, setForm] = useState(initialState);
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [parametrosBusqueda] = useSearchParams();
+  const navegar = useNavigate();
+  const Id_equipo = parametrosBusqueda.get("Id_equipo");
+  const [formulario, setFormulario] = useState(initialState);
+  const [errores, setErrores] = useState({});
+  const [estaSubiendo, setEstaSubiendo] = useState(false);
+  const [mensajeError, setMensajeError] = useState("");
+
 
   useEffect(() => {
-    if (id) {
-      obtenerRegisto(id)
-        .then(data => {
-          if (data) {
-            setForm(data);
-          }
-        })
-        .catch(error => {
-          console.error("Error al cargar usuario:", error);
-        });
-    }
-  }, [id]);
-
-  const validate = () => {
-    const newErrors = {};
-    
-    // Validación de Nombre (solo letras y espacios)
-    if (!form.Nombre.trim()) {
-      newErrors.Nombre = "El nombre es obligatorio";
-    } else if (!/^[A-Za-zÁáÉéÍíÓóÚúÑñ\s]+$/.test(form.Nombre)) {
-      newErrors.Nombre = "El nombre solo puede contener letras y espacios";
-    } else if (form.Nombre.trim().length < 2) {
-      newErrors.Nombre = "El nombre debe tener al menos 2 caracteres";
-    }
-
-    // Validación de Apellido (solo letras y espacios)
-    if (!form.Apellido.trim()) {
-      newErrors.Apellido = "El apellido es obligatorio";
-    } else if (!/^[A-Za-zÁáÉéÍíÓóÚúÑñ\s]+$/.test(form.Apellido)) {
-      newErrors.Apellido = "El apellido solo puede contener letras y espacios";
-    }
-
-    // Validación de Dirección
-    if (!form.Direccion.trim()) {
-      newErrors.Direccion = "La dirección es obligatoria";
-    } else if (form.Direccion.trim().length < 5) {
-      newErrors.Direccion = "La dirección debe tener al menos 5 caracteres";
-    }
-
-    // Validación de DNI (solo números, positivo, entre 7 y 8 dígitos)
-    if (!form.Dni) {
-      newErrors.Dni = "El DNI es obligatorio";
-    } else if (!/^\d+$/.test(form.Dni)) {
-      newErrors.Dni = "El DNI solo puede contener números";
-    } else if (parseInt(form.Dni) <= 0) {
-      newErrors.Dni = "El DNI no puede ser 0 o negativo";
-    } else if (form.Dni.length < 7 || form.Dni.length > 8) {
-      newErrors.Dni = "El DNI debe tener entre 7 y 8 dígitos";
-    }
-
-    // Validación de Teléfono (solo números, mínimo 10 dígitos)
-    if (!form.Teléfono) {
-      newErrors.Teléfono = "El teléfono es obligatorio";
-    } else if (!/^\d+$/.test(form.Teléfono)) {
-      newErrors.Teléfono = "El teléfono solo puede contener números";
-    } else if (form.Teléfono.length < 10) {
-      newErrors.Teléfono = "El teléfono debe tener al menos 10 dígitos";
-    }
-
-    // Validación de Fecha de Nacimiento (no futura, mayor de 18 años opcional)
-    if (!form["Fecha de nacimiento"]) {
-      newErrors["Fecha de nacimiento"] = "La fecha de nacimiento es obligatoria";
-    } else {
-      const birthDate = new Date(form["Fecha de nacimiento"]);
-      const today = new Date();
-      
-      if (birthDate > today) {
-        newErrors["Fecha de nacimiento"] = "La fecha de nacimiento no puede ser futura";
-      } else {
-        const age = today.getFullYear() - birthDate.getFullYear();
-        if (age < 18) {
-          newErrors["Fecha de nacimiento"] = "Debes ser mayor de 18 años";
+  if (Id_equipo) {
+    obtenerRegistros() // traemos todos los registros
+      .then((todos) => {
+        const registro = todos.find(r => r.Id_equipo.toString() === Id_equipo.toString());
+        if (registro) {
+          // Asegura que siempre haya todas las claves
+          setFormulario({ ...initialState, ...registro });
         }
-      }
-    }
+      })
+      .catch((error) => {
+        console.error("Error al cargar registro:", error);
+      });
+  }
+}, [Id_equipo]);
 
-    // Validación de Email
-    if (!form.Email) {
-      newErrors.Email = "El email es obligatorio";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.Email)) {
-      newErrors.Email = "Formato de email inválido";
-    }
 
-    return newErrors;
-  };
-
-  const handleChange = (e) => {
+  // Manejar cambios de input
+  const manejarCambios = (e) => {
     const { name, value } = e.target;
-    
-    // Validación en tiempo real para DNI (solo números)
-    if (name === "Dni" || name === "Teléfono") {
-      if (!/^\d*$/.test(value)) return; // Solo permite números
-    }
-    
-    // Validación en tiempo real para Nombre y Apellido (solo letras)
-    if (name === "Nombre" || name === "Apellido") {
-      if (!/^[A-Za-zÁáÉéÍíÓóÚúÑñ\s]*$/.test(value)) return;
-    }
-    
-    setForm(prev => ({ ...prev, [name]: value }));
-    
-    // Limpiar error del campo cuando el usuario empiece a escribir
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }));
-    }
+    setFormulario({
+      ...formulario,
+      [name]: value,
+    });
   };
 
-  const handleSubmit = async (e) => {
+  const validarFecha = (fecha) => {
+    if (!fecha) return "La fecha es obligatoria";
+    const añoFormulario = new Date(fecha).getFullYear();
+    const añoActual = new Date().getFullYear();
+    if (añoFormulario !== añoActual) return `La fecha debe estar en el año ${añoActual}`;
+    return null;
+  };
+
+
+  // hacer los campos obligatorios (validarlos)
+  const validar = () => {
+  const nuevosErrores = {};
+
+  if (!formulario.Numero_de_serie?.trim())
+    nuevosErrores.Numero_de_serie = "El número de serie es obligatorio, en caso de no existir poner 0";
+
+  if (!formulario.Modelo_exacto?.trim())
+    nuevosErrores.Modelo_exacto = "El modelo exacto es obligatorio";
+
+  if (!formulario.Generacion?.trim()) {
+    nuevosErrores.Generacion = "La generación es obligatoria";
+  } else {
+    // Validamos que esté en el rango G-1 a G-15
+    const match = formulario.Generacion.match(/^G-(\d{1,2})$/);
+    if (!match || Number(match[1]) < 0 || Number(match[1]) > 15) {
+      nuevosErrores.Generacion = "La generación debe estar entre G-0 (no es del gobierno) y G-15";
+    }
+  }
+
+  if (!formulario.Observaciones?.trim())
+    nuevosErrores.Observaciones = "Las observaciones son obligatorias";
+
+  if (!formulario.Diagnostico?.trim())
+    nuevosErrores.Diagnostico = "El diagnóstico es obligatorio";
+
+  if (!formulario.Estado?.trim())
+    nuevosErrores.Estado = "El estado es obligatorio";
+
+  const errorFecha = validarFecha(formulario.Fecha_diagnostico);
+  if (errorFecha) nuevosErrores.Fecha_diagnostico = errorFecha;
+
+
+  return nuevosErrores;
+};
+
+
+  // manejar el POST (distinguir editar de crear, campos validados, etc)
+  const manejarSubida = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    
-    const validationErrors = validate();
-    setErrors(validationErrors);
-    
-    if (Object.keys(validationErrors).length > 0) {
-      setIsSubmitting(false);
+    setEstaSubiendo(true);
+
+    const erroresValidacion = validar();
+    setErrores(erroresValidacion);
+
+    if (Object.keys(erroresValidacion).length > 0) {
+      setEstaSubiendo(false);
       return;
     }
 
     try {
-      if (id) {
-        await actualizarRegisto(id, form);
-      } else {
-        await crearRegistro(form);
-      }
-      navigate("/");
-    } catch (error) {
-      console.error("Error al guardar usuario:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+  if (Id_equipo) {
+    await actualizarRegisto(Id_equipo, formulario);
+  } else {
+    await crearRegistro(formulario);
+  }
+  navegar("/");
+} catch (error) {
+  // Aquí ahora sí llega el mensaje exacto del backend
+  if (error.message.includes("número de serie ya está registrado")) {
+    setErrores({ Numero_de_serie: error.message });
+  } else {
+    setMensajeError(error.message || "Hubo un error al guardar el registro");
+  }
+} finally {
+  setEstaSubiendo(false);
+}
+
+
+
+
+
   };
 
   return (
     <div className="form-container">
-      <h2>{id ? "Editar usuario" : "Crear usuario"}</h2>
+      <h2>{Id_equipo ? "Editar registro" : "Crear registro"}</h2>
+
       
-      <form onSubmit={handleSubmit} className="user-form">
+      {mensajeError && (
+        <div className="alert alert-danger">
+          {mensajeError}
+        </div>
+      )}
+
+      <form onSubmit={manejarSubida} className="user-form">
         <div className="form-group">
-          <label htmlFor="Nombre">Nombre *</label>
+          <label htmlFor="Numero_de_serie">Número de serie *</label>
           <input
-            id="Nombre"
-            name="Nombre"
-            value={form.Nombre}
-            onChange={handleChange}
-            placeholder="Ej: Juan"
+            type="text"
+            id="Numero_de_serie"
+            name="Numero_de_serie"
+            value={formulario.Numero_de_serie}
+            onChange={manejarCambios}
             maxLength={50}
-            className={errors.Nombre ? "error" : ""}
+            className={errores.Numero_de_serie ? "error" : ""}
           />
-          {errors.Nombre && <span className="error-text">{errors.Nombre}</span>}
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="Apellido">Apellido *</label>
-          <input
-            id="Apellido"
-            name="Apellido"
-            value={form.Apellido}
-            onChange={handleChange}
-            placeholder="Ej: Pérez"
-            maxLength={50}
-            className={errors.Apellido ? "error" : ""}
-          />
-          {errors.Apellido && <span className="error-text">{errors.Apellido}</span>}
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="Direccion">Dirección *</label>
-          <input
-            id="Direccion"
-            name="Direccion"
-            value={form.Direccion}
-            onChange={handleChange}
-            placeholder="Ej: Calle Principal 123"
-            maxLength={100}
-            className={errors.Direccion ? "error" : ""}
-          />
-          {errors.Direccion && <span className="error-text">{errors.Direccion}</span>}
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="Dni">DNI *</label>
-          <input
-            id="Dni"
-            name="Dni"
-            value={form.Dni}
-            onChange={handleChange}
-            placeholder="Ej: 12345678"
-            maxLength={8}
-            className={errors.Dni ? "error" : ""}
-          />
-          {errors.Dni && <span className="error-text">{errors.Dni}</span>}
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="Teléfono">Teléfono *</label>
-          <input
-            id="Teléfono"
-            name="Teléfono"
-            value={form.Teléfono}
-            onChange={handleChange}
-            placeholder="Ej: 1123456789"
-            maxLength={15}
-            className={errors.Teléfono ? "error" : ""}
-          />
-          {errors.Teléfono && <span className="error-text">{errors.Teléfono}</span>}
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="fecha_nacimiento">Fecha de Nacimiento *</label>
-          <input
-            id="fecha_nacimiento"
-            name="Fecha de nacimiento"
-            type="date"
-            value={form["Fecha de nacimiento"]}
-            onChange={handleChange}
-            className={errors["Fecha de nacimiento"] ? "error" : ""}
-          />
-          {errors["Fecha de nacimiento"] && (
-            <span className="error-text">{errors["Fecha de nacimiento"]}</span>
+          {errores.Numero_de_serie && (
+            <span className="error-text">{errores.Numero_de_serie}</span>
           )}
         </div>
 
         <div className="form-group">
-          <label htmlFor="Email">Email *</label>
+          <label htmlFor="Modelo_exacto">Modelo exacto *</label>
           <input
-            id="Email"
-            name="Email"
-            type="email"
-            value={form.Email}
-            onChange={handleChange}
-            placeholder="Ej: usuario@ejemplo.com"
-            maxLength={100}
-            className={errors.Email ? "error" : ""}
+            type="text"
+            id="Modelo_exacto"
+            name="Modelo_exacto"
+            value={formulario.Modelo_exacto}
+            onChange={manejarCambios}
+            maxLength={50}
+            className={errores.Modelo_exacto ? "error" : ""}
           />
-          {errors.Email && <span className="error-text">{errors.Email}</span>}
+          {errores.Modelo_exacto && (
+            <span className="error-text">{errores.Modelo_exacto}</span>
+          )}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="Generacion">Generación *</label>
+          <input
+            type="text"
+            id="Generacion"
+            name="Generacion"
+            value={formulario.Generacion}
+            onChange={manejarCambios}
+            maxLength={100}
+            className={errores.Generacion ? "error" : ""}
+          />
+          {errores.Generacion && (
+            <span className="error-text">{errores.Generacion}</span>
+          )}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="Observaciones">Observaciones *</label>
+          <textarea
+            id="Observaciones"
+            name="Observaciones"
+            value={formulario.Observaciones}
+            onChange={manejarCambios}
+            maxLength={500} // ampliado para texto descriptivo
+            className={errores.Observaciones ? "error" : ""}
+          />
+          {errores.Observaciones && (
+            <span className="error-text">{errores.Observaciones}</span>
+          )}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="Diagnostico">Diagnóstico *</label>
+          <textarea
+            id="Diagnostico"
+            name="Diagnostico"
+            value={formulario.Diagnostico}
+            onChange={manejarCambios}
+            maxLength={300} // ampliado para texto
+            className={errores.Diagnostico ? "error" : ""}
+          />
+          {errores.Diagnostico && (
+            <span className="error-text">{errores.Diagnostico}</span>
+          )}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="Estado">Estado *</label>
+          <select
+            id="Estado"
+            name="Estado"
+            value={formulario.Estado}
+            onChange={manejarCambios}
+            className={errores.Estado ? "error" : ""}
+          >
+            <option value="">-- Selecciona un estado --</option>
+            <option value="Terminado">Terminado</option>
+            <option value="En proceso">En proceso</option>
+            <option value="Sin comenzar">Sin comenzar</option>
+          </select>
+          {errores.Estado && (
+            <span className="error-text">{errores.Estado}</span>
+          )}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="Fecha_diagnostico">Fecha diagnóstico *</label>
+          <input
+            id="Fecha_diagnostico"
+            name="Fecha_diagnostico"
+            type="date"
+            value={formulario.Fecha_diagnostico}
+            onChange={manejarCambios}
+            className={errores.Fecha_diagnostico ? "error" : ""}
+          />
+          {errores.Fecha_diagnostico && (
+            <span className="error-text">{errores.Fecha_diagnostico}</span>
+          )}
         </div>
 
         <div className="form-actions">
-          <button 
-            type="submit" 
-            disabled={isSubmitting}
+          <button
+            type="submit"
+            disabled={estaSubiendo}
             className="btn btn-primary"
           >
-            {isSubmitting ? "Guardando..." : (id ? "Actualizar" : "Crear")}
+            {estaSubiendo
+              ? "Guardando..."
+              : Id_equipo
+              ? "Actualizar"
+              : "Crear"}
           </button>
-          
-          <button 
-            type="button" 
-            onClick={() => navigate("/")}
+
+          <button
+            type="button"
+            onClick={() => navegar("/")}
             className="btn btn-secondary"
           >
             Cancelar

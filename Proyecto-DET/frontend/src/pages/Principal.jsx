@@ -1,52 +1,68 @@
 import { useEffect, useState } from "react";
-import { obtenerRegistros, borrarRegistro, borrarRegistro } from "../api/users";
+import { obtenerRegistros, borrarRegistro, buscarRegistro } from "../api/consultas";
+import '../Principal.css';
 
 export default function Principal() {
-  const [users, setUsers] = useState([]);
+  const [registros, setRegistros] = useState([]);
   const [query, setQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [userToDelete, setUserToDelete] = useState(null);
+  const [registroToDelete, setRegistroToDelete] = useState(null);
 
+  // Cargar registros al inicio
   useEffect(() => {
-    obtenerRegistros().then(setUsers);
+    obtenerRegistros().then(setRegistros);
   }, []);
 
-  const handleDeleteClick = (user) => {
-    setUserToDelete(user);
+  // Preparar registro para eliminar
+  const handleDeleteClick = (registro) => {
+    setRegistroToDelete(registro);
     setShowModal(true);
   };
 
+  // Confirmar eliminación
   const confirmDelete = async () => {
-    if (userToDelete) {
-      await borrarRegistro(userToDelete.id);
-      setUsers(users.filter(u => u.id !== userToDelete.id));
+    if (registroToDelete) {
+      await borrarRegistro(registroToDelete.Id_equipo);
+      setRegistros(registros.filter(u => u.Id_equipo !== registroToDelete.Id_equipo));
       setShowModal(false);
-      setUserToDelete(null);
+      setRegistroToDelete(null);
     }
   };
 
+  // Cancelar eliminación
   const cancelDelete = () => {
     setShowModal(false);
-    setUserToDelete(null);
+    setRegistroToDelete(null);
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  // Búsqueda de registros
+const handleSearch = async (e) => {
+  e.preventDefault();
+  try {
     if (query.trim() === "") {
-      obtenerRegistros().then(setUsers);
+      const all = await obtenerRegistros();
+      setRegistros(all);
     } else {
-      const results = await borrarRegistro(query);
-      setUsers(Array.isArray(results) ? results : []);
+      
+      const results = await buscarRegistro(query);
+      setRegistros(Array.isArray(results) ? results : []);
     }
-  };
+  } catch (error) {
+    console.error("Error al buscar:", error);
+    setRegistros([]);
+  }
+};
 
   return (
     <div>
-      <h1>Usuarios</h1>
-      <form onSubmit={handleSearch} style={{ marginBottom: "1em", display: "flex", justifyContent: "center", gap: "1em" }}>
+      <h1>Registros</h1>
+      <form
+        onSubmit={handleSearch}
+        style={{ marginBottom: "1em", display: "flex", justifyContent: "center", gap: "1em" }}
+      >
         <input
           type="text"
-          placeholder="Buscar por nombre, apellido o email"
+          placeholder="Buscar por numero de serie, fecha o generacion"
           value={query}
           onChange={e => setQuery(e.target.value)}
           style={{ flex: 1, maxWidth: 300 }}
@@ -56,46 +72,49 @@ export default function Principal() {
           type="button"
           onClick={() => {
             setQuery("");
-            obtenerRegistros().then(setUsers);
+            obtenerRegistros().then(setRegistros);
           }}
         >
           Limpiar
         </button>
       </form>
-      <a href="/form">Crear usuario</a>
+
+      <a href="/formulario">Crear registro</a>
+
       <table>
         <thead>
           <tr>
-            <th>Nombre</th>
-            <th>Apellido</th>
-            <th>Dirección</th>
-            <th>DNI</th>
-            <th>Teléfono</th>
-            <th>Fecha de nacimiento</th>
-            <th>Email</th>
+            <th>Numero de serie</th>
+            <th>Modelo exacto</th>
+            <th>Generacion</th>
+            <th>Observaciones</th>
+            <th>Diagnostico</th>
+            <th>Estado</th>
+            <th>Fecha diagnostico</th>
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {(Array.isArray(users) ? users : []).map(user => (
-            <tr key={user.id}>
-              <td data-label="Nombre">{user.Nombre}</td>
-              <td data-label="Apellido">{user.Apellido}</td>
-              <td data-label="Dirección">{user.Direccion}</td>
-              <td data-label="DNI">{user.Dni}</td>
-              <td data-label="Teléfono">{user.Teléfono}</td>
-              <td data-label="Fecha de nacimiento">{user["Fecha de nacimiento"]}</td>
-              <td data-label="Email">{user.Email}</td>
+          {(Array.isArray(registros) ? registros : []).map(registro => (
+            <tr key={registro.Id_equipo}>
+              <td data-label="Numero_de_serie">{registro.Numero_de_serie}</td>
+              <td data-label="Modelo_exacto">{registro.Modelo_exacto}</td>
+              <td data-label="Generacion">{registro.Generacion}</td>
+              <td data-label="Observaciones">{registro.Observaciones}</td>
+              <td data-label="Diagnostico">{registro.Diagnostico}</td>
+              <td data-label="Estado">{registro.Estado}</td>
+              <td data-label="Fecha diagnostico">{registro.Fecha_diagnostico ? registro.Fecha_diagnostico.split("T")[0] : ""}</td>
               <td>
-                <a href={`/form?id=${user.id}`}>Editar</a>{" | "}
-                <button onClick={() => handleDeleteClick(user)}>Eliminar</button>
+                <a href={`/formulario?Id_equipo=${registro.Id_equipo}`}>Editar</a>{" | "}
+                <button onClick={() => handleDeleteClick(registro)}>Eliminar</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      {Array.isArray(users) && users.length === 0 && (
-        <div>No se encontraron usuarios.</div>
+
+      {Array.isArray(registros) && registros.length === 0 && (
+        <div>No se encontraron registros.</div>
       )}
 
       {/* Modal de confirmación */}
@@ -107,9 +126,9 @@ export default function Principal() {
           <div style={{
             background: "#fff", padding: "2em", borderRadius: "8px", boxShadow: "0 2px 8px #0002", minWidth: "300px"
           }}>
-            <h3>¿Seguro que quieres eliminar este usuario?</h3>
+            <h3>¿Seguro que quieres eliminar este registro?</h3>
             <p>
-              <b>{userToDelete?.Nombre} {userToDelete?.Apellido}</b>
+              <b>{registroToDelete?.Numero_de_serie} {registroToDelete?.Modelo_exacto}</b>
             </p>
             <div style={{ marginTop: "1.5em", display: "flex", justifyContent: "center", gap: "1em" }}>
               <button onClick={confirmDelete} style={{ background: "#e11d48" }}>Eliminar</button>
@@ -120,5 +139,4 @@ export default function Principal() {
       )}
     </div>
   );
-
 }

@@ -1,14 +1,16 @@
-const API_URL = "http://localhost:3000/usuarios";
+const API_URL = "http://localhost:3000/seguimiento_tecnico";
 
 export async function obtenerRegistros() {
   const res = await fetch(API_URL);
+  if (!res.ok) throw new Error("Error al obtener registros");
   return res.json();
 }
 
 export async function obtenerRegisto(id) {
   const res = await fetch(`${API_URL}/${id}`);
+  if (!res.ok) throw new Error("Error al obtener registro");
   return res.json();
-} // obtener un usuario por ID
+}
 
 export async function crearRegistro(data) {
   const res = await fetch(API_URL, {
@@ -16,8 +18,17 @@ export async function crearRegistro(data) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  return res.json();
-} // crear un usuario
+
+  const responseData = await res.json(); // Leemos el JSON del backend
+
+  if (!res.ok) {
+    // Lanzamos un error con el mensaje real
+    throw new Error(responseData.error || "Error al crear registro");
+  }
+
+  return responseData;
+}
+
 
 export async function actualizarRegisto(id, data) {
   const res = await fetch(`${API_URL}/${id}`, {
@@ -25,14 +36,17 @@ export async function actualizarRegisto(id, data) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
+  if (!res.ok) throw new Error("Error al actualizar registro");
   return res.json();
-}  // actualizar un usuario
+}
 
 export async function borrarRegistro(id) {
-  await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-} // eliminar un usuario
+  const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Error al borrar registro");
+}
 
 export async function buscarRegistro(query) {
-  const res = await fetch(`http://localhost:3000/usuarios/buscar/${encodeURIComponent(query)}`);
+  const res = await fetch(`${API_URL}/buscar/${encodeURIComponent(query)}`);
+  if (!res.ok) throw new Error("Error en búsqueda");
   return res.json();
 }

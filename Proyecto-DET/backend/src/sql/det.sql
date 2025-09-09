@@ -28,14 +28,14 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `seguimiento_tecnico` (
-  `id_equipo` int(11) NOT NULL,
-  `numero_de_serie` varchar(50) DEFAULT NULL,
-  `modelo_exacto` varchar(50) DEFAULT NULL,
-  `generacion` int(11) NOT NULL,
-  `observaciones` varchar(500) NOT NULL,
-  `diagnostico` varchar(50) NOT NULL,
-  `estado` varchar(10) NOT NULL,
-  `fecha_diagnostico` date NOT NULL
+  `Id_equipo` int(255) NOT NULL,
+  `Numero_de_serie` varchar(50) DEFAULT NULL,
+  `Modelo_exacto` varchar(50) DEFAULT NULL,
+  `Generacion` varchar(4) NOT NULL,
+  `Observaciones` varchar(500) NOT NULL,
+  `Diagnostico` varchar(50) NOT NULL,
+  `Estado` varchar(10) NOT NULL,
+  `Fecha_diagnostico` date NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -46,8 +46,8 @@ CREATE TABLE `seguimiento_tecnico` (
 -- Indices de la tabla `seguimiento_tecnico`
 --
 ALTER TABLE `seguimiento_tecnico`
-  ADD PRIMARY KEY (`id_equipo`),
-  ADD UNIQUE KEY `numero_de_serie` (`numero_de_serie`);
+  ADD PRIMARY KEY (`Id_equipo`),
+  ADD UNIQUE KEY `Numero_de_serie` (`Numero_de_serie`);
 
 --
 -- AUTO_INCREMENT de las tablas volcadas
@@ -57,7 +57,7 @@ ALTER TABLE `seguimiento_tecnico`
 -- AUTO_INCREMENT de la tabla `seguimiento_tecnico`
 --
 ALTER TABLE `seguimiento_tecnico`
-  MODIFY `id_equipo` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `Id_equipo` int(11) NOT NULL AUTO_INCREMENT;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

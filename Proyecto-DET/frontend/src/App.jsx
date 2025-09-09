@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './App.css';
+import './Principal.css';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Principal from './pages/Principal';
 import Formulario from './pages/Formulario';
@@ -12,7 +12,7 @@ function App() {
       <div className='App'>
         <Routes>
           <Route  path="/"  element={<Principal/> }/>
-          <Route path="/Formulario" element={<Formulario/>} />
+          <Route path="/formulario" element={<Formulario/>} />
         </Routes>
       </div>
     </Router>
